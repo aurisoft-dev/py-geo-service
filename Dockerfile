@@ -21,8 +21,11 @@ COPY . .
 # quedando lista y optimizada para arrancar súper rápido.
 RUN npm run ingest
 
+# Configurar la variable de entorno para forzar a la app a usar este puerto
+ENV PORT=3001
+
 # Exponer el puerto
-EXPOSE 3000
+EXPOSE 3001
 
 # Comando de inicio
 CMD ["npm", "start"]
