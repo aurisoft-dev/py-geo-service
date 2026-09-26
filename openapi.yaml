@@ -1,0 +1,290 @@
+openapi: 3.0.3
+info:
+  title: geo-referencia-service
+  description: >
+    Servicio de referencia geografica de Paraguay (SIFEN/INE), jerarquia de 4
+    niveles: Departamento -> Distrito -> Ciudad/Localidad -> Barrio.
+  version: "1.0.0"
+servers:
+  - url: http://localhost:3000
+    description: Servidor local
+
+tags:
+  - name: geo
+    description: Consulta de la jerarquia geografica
+  - name: sistema
+    description: Estado del servicio
+
+paths:
+  /health:
+    get:
+      tags: [sistema]
+      summary: Estado del servicio y del cache en memoria
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Health"
+              example:
+                status: ok
+                cache: { departamentos: 18, distritos: 272, ciudades: 6766, barrios: 7735 }
+                loadedAt: "2026-07-10T13:24:27.547Z"
+
+  /departamentos:
+    get:
+      tags: [geo]
+      summary: Lista todos los departamentos activos
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Departamento"
+              example:
+                - { id: 1, codigo: "1", nombre: "CAPITAL" }
+                - { id: 2, codigo: "2", nombre: "CONCEPCION" }
+
+  /departamentos/{id}/distritos:
+    get:
+      tags: [geo]
+      summary: Distritos de un departamento (por path)
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Distrito"
+        "400":
+          $ref: "#/components/responses/IdInvalido"
+        "404":
+          description: Departamento no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /distritos:
+    get:
+      tags: [geo]
+      summary: Distritos de un departamento (por query param)
+      description: Equivalente a `/departamentos/{id}/distritos`, filtrando por query string.
+      parameters:
+        - $ref: "#/components/parameters/DepartamentoId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Distrito"
+        "400":
+          $ref: "#/components/responses/IdInvalido"
+        "404":
+          description: Departamento no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /distritos/{id}/ciudades:
+    get:
+      tags: [geo]
+      summary: Ciudades/localidades de un distrito (por path)
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Ciudad"
+        "400":
+          $ref: "#/components/responses/IdInvalido"
+        "404":
+          description: Distrito no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /ciudades:
+    get:
+      tags: [geo]
+      summary: Ciudades/localidades de un distrito (por query param)
+      description: Equivalente a `/distritos/{id}/ciudades`, filtrando por query string.
+      parameters:
+        - $ref: "#/components/parameters/DistritoId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Ciudad"
+        "400":
+          $ref: "#/components/responses/IdInvalido"
+        "404":
+          description: Distrito no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /ciudades/{id}/barrios:
+    get:
+      tags: [geo]
+      summary: Barrios de una ciudad/localidad (por path)
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Barrio"
+        "400":
+          $ref: "#/components/responses/IdInvalido"
+        "404":
+          description: Ciudad no encontrada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /barrios:
+    get:
+      tags: [geo]
+      summary: Barrios de una ciudad/localidad (por query param)
+      description: Equivalente a `/ciudades/{id}/barrios`, filtrando por query string.
+      parameters:
+        - $ref: "#/components/parameters/CiudadId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Barrio"
+        "400":
+          $ref: "#/components/responses/IdInvalido"
+        "404":
+          description: Ciudad no encontrada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+components:
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      description: Id interno (autoincrement) devuelto por el endpoint del nivel padre, no el codigo INE/SIFEN.
+      schema:
+        type: integer
+        minimum: 1
+    DepartamentoId:
+      name: departamento_id
+      in: query
+      required: true
+      description: Id interno del departamento.
+      schema:
+        type: integer
+        minimum: 1
+    DistritoId:
+      name: distrito_id
+      in: query
+      required: true
+      description: Id interno del distrito.
+      schema:
+        type: integer
+        minimum: 1
+    CiudadId:
+      name: ciudad_id
+      in: query
+      required: true
+      description: Id interno de la ciudad/localidad.
+      schema:
+        type: integer
+        minimum: 1
+
+  responses:
+    IdInvalido:
+      description: El id no es un entero valido
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+
+  schemas:
+    Departamento:
+      type: object
+      properties:
+        id: { type: integer, example: 1 }
+        codigo: { type: string, example: "1" }
+        nombre: { type: string, example: "CAPITAL" }
+
+    Distrito:
+      type: object
+      properties:
+        id: { type: integer, example: 1 }
+        departamento_id: { type: integer, example: 1 }
+        codigo: { type: string, example: "1" }
+        nombre: { type: string, example: "ASUNCION (DISTRITO)" }
+
+    Ciudad:
+      type: object
+      properties:
+        id: { type: integer, example: 1 }
+        distrito_id: { type: integer, example: 1 }
+        codigo: { type: string, example: "1" }
+        nombre: { type: string, example: "ASUNCION (DISTRITO)" }
+
+    Barrio:
+      type: object
+      properties:
+        id: { type: integer, example: 1 }
+        ciudad_id: { type: integer, example: 1 }
+        codigo: { type: string, example: "1" }
+        nombre: { type: string, example: "MANORA" }
+
+    Health:
+      type: object
+      properties:
+        status: { type: string, example: ok }
+        cache:
+          type: object
+          properties:
+            departamentos: { type: integer, example: 18 }
+            distritos: { type: integer, example: 272 }
+            ciudades: { type: integer, example: 6766 }
+            barrios: { type: integer, example: 7735 }
+        loadedAt: { type: string, format: date-time }
+
+    Error:
+      type: object
+      properties:
+        error: { type: string, example: "id invalido" }
