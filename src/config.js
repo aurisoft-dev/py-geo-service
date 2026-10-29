@@ -1,3 +1,4 @@
+require('dotenv').config();
 const path = require('path');
 const fs = require('fs');
 
@@ -21,4 +22,5 @@ module.exports = {
   dbPath: path.join(dataDir, 'geo.db'),
   excelPath: findDefaultExcel(),
   port: process.env.PORT ? Number(process.env.PORT) : 3001,
+  adminApiKey: process.env.ADMIN_API_KEY || 'geo-admin-2026',
 };

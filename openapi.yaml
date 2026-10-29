@@ -32,6 +32,23 @@ paths:
                 cache: { departamentos: 18, distritos: 272, ciudades: 6766, barrios: 7735 }
                 loadedAt: "2026-07-10T13:24:27.547Z"
 
+  /paises:
+    get:
+      tags: [geo]
+      summary: Lista de países (ISO-3166-1 alfa-3)
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Pais"
+              example:
+                - { code: "PRY", name: "Paraguay" }
+                - { code: "ARG", name: "Argentina" }
+
   /departamentos:
     get:
       tags: [geo]
@@ -240,6 +257,12 @@ components:
             $ref: "#/components/schemas/Error"
 
   schemas:
+    Pais:
+      type: object
+      properties:
+        code: { type: string, example: "PRY" }
+        name: { type: string, example: "Paraguay" }
+
     Departamento:
       type: object
       properties:

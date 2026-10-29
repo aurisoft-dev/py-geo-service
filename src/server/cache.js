@@ -77,6 +77,25 @@ class GeoCache {
     }
   }
 
+  getPaises() {
+    return [
+      { code: 'ARG', name: 'Argentina' }, { code: 'BOL', name: 'Bolivia' },
+      { code: 'BRA', name: 'Brasil' }, { code: 'CHL', name: 'Chile' },
+      { code: 'COL', name: 'Colombia' }, { code: 'CRI', name: 'Costa Rica' },
+      { code: 'CUB', name: 'Cuba' }, { code: 'ECU', name: 'Ecuador' },
+      { code: 'SLV', name: 'El Salvador' }, { code: 'GTM', name: 'Guatemala' },
+      { code: 'HND', name: 'Honduras' }, { code: 'MEX', name: 'México' },
+      { code: 'NIC', name: 'Nicaragua' }, { code: 'PAN', name: 'Panamá' },
+      { code: 'PRY', name: 'Paraguay' }, { code: 'PER', name: 'Perú' },
+      { code: 'DOM', name: 'República Dominicana' }, { code: 'URY', name: 'Uruguay' },
+      { code: 'VEN', name: 'Venezuela' }, { code: 'USA', name: 'Estados Unidos' },
+      { code: 'ESP', name: 'España' }, { code: 'CAN', name: 'Canadá' },
+      { code: 'DEU', name: 'Alemania' }, { code: 'FRA', name: 'Francia' },
+      { code: 'GBR', name: 'Reino Unido' }, { code: 'ITA', name: 'Italia' },
+      { code: 'CHN', name: 'China' }, { code: 'JPN', name: 'Japón' }
+    ];
+  }
+
   getDepartamentos() {
     return this.data.departamentos;
   }

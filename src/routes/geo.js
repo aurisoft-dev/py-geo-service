@@ -25,6 +25,10 @@ function getRequiredQueryId(req, res, name) {
 function buildGeoRouter(cache) {
   const router = express.Router();
 
+  router.get('/paises', (req, res) => {
+    res.json(cache.getPaises());
+  });
+
   router.get('/departamentos', (req, res) => {
     res.json(cache.getDepartamentos());
   });

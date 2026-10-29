@@ -114,7 +114,10 @@ Al arrancar:
 | GET    | `/barrios?ciudad_id=:id`                | Mismo resultado, filtrando por query param            |
 | GET    | `/health`                               | Estado + conteos del cache                             |
 | GET    | `/docs`                                  | Swagger UI (documentacion interactiva, "Try it out")  |
+| GET    | `/paises`                                | Lista de países ISO-3166-1 alfa-3 (código y nombre)  |
 | GET    | `/openapi.json`                          | Spec OpenAPI 3.0 en JSON (tambien esta en `openapi.yaml`) |
+| GET    | `/admin`                                 | Panel web interactivo para upload e ingesta de Excel |
+| POST   | `/api/admin/ingest`                      | Carga y procesamiento del Excel vía API (requiere `ADMIN_API_KEY`) |
 
 Las rutas por query param son equivalentes a las anidadas por path (mismo
 cache, misma respuesta); se agregaron para poder pedir "los hijos de X" sin

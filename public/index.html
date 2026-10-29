@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Geo Referencia PY — Carga e Ingesta SIFEN / INE</title>
+  <!-- Favicon inline SVG para evitar 404 -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🇵🇾</text></svg>">
+  <!-- Estilos limpios y autocontenidos sin advertencias de CDN -->
+  <link rel="stylesheet" href="/admin/style.css">
+</head>
+<body>
+
+  <!-- TOP NAVBAR -->
+  <header class="navbar">
+    <div class="nav-container">
+      <div class="brand">
+        <div class="logo-badge">PY</div>
+        <div>
+          <h1 class="brand-title">Microservicio Geo PY</h1>
+          <p class="brand-sub">Referencia Geográfica SIFEN / INE (Paraguay)</p>
+        </div>
+      </div>
+
+      <div class="nav-actions">
+        <div id="serviceStatusBadge" class="badge badge-success">
+          <span class="badge-dot"></span>
+          Servicio activo
+        </div>
+
+        <button id="btnChangeKey" onclick="openKeyModal()" class="btn btn-secondary btn-sm">
+          <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path></svg>
+          <span id="keyButtonText">Clave Admin</span>
+        </button>
+
+        <a href="/docs" target="_blank" class="btn btn-dark btn-sm">
+          Swagger /docs ↗
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN CONTAINER -->
+  <main class="main-content">
+
+    <!-- GLOBAL ALERT BANNER -->
+    <div id="globalAlert" class="alert alert-info hidden"></div>
+
+    <!-- METRICS SECTION -->
+    <section>
+      <div class="section-header">
+        <h2 class="section-title">Catálogo Geográfico en Memoria</h2>
+        <button onclick="loadStatus()" class="btn-link">
+          🔄 Actualizar conteos
+        </button>
+      </div>
+
+      <div class="metrics-grid">
+        <!-- Departamentos -->
+        <div class="metric-box">
+          <div class="metric-name">Departamentos</div>
+          <div id="countDeps" class="metric-value">--</div>
+          <p class="metric-tag">Nivel 1 (SIFEN)</p>
+          <div class="metric-icon">D1</div>
+        </div>
+
+        <!-- Distritos -->
+        <div class="metric-box">
+          <div class="metric-name">Distritos</div>
+          <div id="countDists" class="metric-value">--</div>
+          <p class="metric-tag">Nivel 2 (Municipios)</p>
+          <div class="metric-icon">D2</div>
+        </div>
+
+        <!-- Ciudades -->
+        <div class="metric-box">
+          <div class="metric-name">Ciudades / Localidades</div>
+          <div id="countCiud" class="metric-value">--</div>
+          <p class="metric-tag">Nivel 3</p>
+          <div class="metric-icon">C3</div>
+        </div>
+
+        <!-- Barrios -->
+        <div class="metric-box">
+          <div class="metric-name">Barrios</div>
+          <div id="countBarrios" class="metric-value">--</div>
+          <p class="metric-tag">Nivel 4 (Detalle fino)</p>
+          <div class="metric-icon">B4</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- UPLOAD CARD -->
+    <section class="card">
+      <div class="card-header">
+        <div>
+          <h2 class="card-title">Cargar y Procesar Archivo Excel (INE / SIFEN)</h2>
+          <p class="card-desc">Sube el archivo <span class="code-tag">.xlsx</span> para actualizar el catálogo de manera incremental por diff.</p>
+        </div>
+        <span class="badge badge-warning">
+          🔐 Requiere ADMIN_API_KEY
+        </span>
+      </div>
+
+      <div class="card-body" style="display: flex; flex-direction: column; gap: 1.5rem;">
+        <!-- DRAG AND DROP ZONE -->
+        <div id="dropZone" class="dropzone">
+          <input type="file" id="fileInput" accept=".xlsx" class="hidden">
+          
+          <div id="dropEmptyState">
+            <div class="drop-icon">
+              <svg width="28" height="28" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+            </div>
+            <p class="drop-prompt">Arrastra tu archivo Excel (.xlsx) aquí</p>
+            <p class="drop-sub">o haz clic para explorar tus carpetas</p>
+            <p class="drop-help">Formato estándar de Código de Referencia Geográfica INE / SET</p>
+          </div>
+
+          <!-- SELECTED FILE STATE -->
+          <div id="dropSelectedState" class="selected-file-card hidden">
+            <div class="file-info">
+              <span class="file-badge">XLSX</span>
+              <div>
+                <p id="selectedFileName" class="file-name">archivo.xlsx</p>
+                <p id="selectedFileSize" class="file-size">0 KB</p>
+              </div>
+            </div>
+            <button type="button" onclick="clearSelectedFile(event)" class="btn-remove" title="Quitar archivo">
+              <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- ACTION BUTTON & INFO -->
+        <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem;">
+          <div style="font-size: 0.75rem; color: var(--text-muted);">
+            <strong>Proceso seguro:</strong> Aplica altas, modificaciones y bajas en memoria y sincroniza <span class="code-tag">data/geo.json</span> en caliente.
+          </div>
+
+          <button id="btnProcess" onclick="processUpload()" disabled class="btn btn-primary">
+            🚀 Procesar Carga e Ingesta
+          </button>
+        </div>
+
+        <!-- PROGRESS LOADER -->
+        <div id="processingLoader" class="hidden" style="background: var(--primary-light); border: 1px solid #bfdbfe; border-radius: var(--radius-md); padding: 1.5rem; text-align: center;">
+          <div class="spinner"></div>
+          <p style="font-size: 0.9rem; font-weight: 700; color: var(--text);">Procesando archivo geográfico...</p>
+          <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">Leyendo hojas, deduplicando por códigos y calculando diferencias. Esto toma unos segundos.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- INGEST RESULT METRICS -->
+    <section id="resultsSection" class="card hidden">
+      <div class="card-header">
+        <div>
+          <h3 class="card-title">✅ Resumen de la Última Ingesta</h3>
+          <p id="resultMeta" class="card-desc">Procesado</p>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="results-grid" id="statsCardsContainer"></div>
+      </div>
+    </section>
+
+    <!-- HISTORIAL TABLE -->
+    <section class="card">
+      <div class="card-header">
+        <div>
+          <h3 class="card-title">Historial de Ingestas Ejecutadas</h3>
+          <p class="card-desc">Auditoría persistida en <span class="code-tag">data/ingest_history.json</span></p>
+        </div>
+        <button onclick="loadHistory()" class="btn-link">Recargar historial</button>
+      </div>
+
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Fecha y Hora</th>
+              <th>Archivo</th>
+              <th style="text-align: center;">Departamentos (+ / ~ / -)</th>
+              <th style="text-align: center;">Distritos (+ / ~ / -)</th>
+              <th style="text-align: center;">Ciudades (+ / ~ / -)</th>
+              <th style="text-align: center;">Barrios (+ / ~ / -)</th>
+            </tr>
+          </thead>
+          <tbody id="historyTableBody">
+            <tr>
+              <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 2rem;">Cargando historial...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- FOOTER LINKS -->
+    <footer style="background: #ffffff; border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.25rem 1.5rem; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; font-size: 0.75rem; color: var(--text-muted);">
+      <div>
+        <strong>Endpoints del Microservicio:</strong>
+        <span style="color: var(--text-subtle);">Consultas directas en JSON para la facturación electrónica:</span>
+      </div>
+      <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        <a href="/paises" target="_blank" class="code-tag" style="text-decoration: none; color: var(--primary);">/paises</a>
+        <a href="/departamentos" target="_blank" class="code-tag" style="text-decoration: none; color: var(--primary);">/departamentos</a>
+        <a href="/health" target="_blank" class="code-tag" style="text-decoration: none; color: var(--primary);">/health</a>
+      </div>
+    </footer>
+  </main>
+
+  <!-- AUTH / KEY MODAL -->
+  <div id="keyModal" class="modal-backdrop hidden">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div class="modal-icon">
+          <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+        </div>
+        <div>
+          <h3 class="modal-title">Clave de Administración</h3>
+          <p class="modal-desc">Configurada en <span class="code-tag">ADMIN_API_KEY</span> (.env)</p>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="adminKeyInput" class="form-label">Clave Secreta</label>
+        <div class="input-wrapper">
+          <input type="password" id="adminKeyInput" placeholder="Ingresa tu clave de administración" class="form-input">
+          <button type="button" onclick="togglePasswordVisibility()" class="input-toggle" title="Mostrar/ocultar clave">
+            👁️
+          </button>
+        </div>
+        <p id="keyModalError" class="hidden" style="color: var(--danger); font-size: 0.75rem; margin-top: 0.35rem; font-weight: 600;"></p>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" onclick="closeKeyModal()" class="btn btn-secondary btn-sm">Cancelar</button>
+        <button type="button" onclick="saveAdminKey()" class="btn btn-primary btn-sm">Guardar y Validar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- JAVASCRIPT -->
+  <script>
+    let selectedFile = null;
+    const STORAGE_KEY = 'geo_admin_api_key';
+
+    function getAdminKey() {
+      return localStorage.getItem(STORAGE_KEY) || '';
+    }
+
+    function setAdminKey(key) {
+      if (key) {
+        localStorage.setItem(STORAGE_KEY, key.trim());
+        updateKeyButtonState(true);
+      } else {
+        localStorage.removeItem(STORAGE_KEY);
+        updateKeyButtonState(false);
+      }
+    }
+
+    function updateKeyButtonState(hasKey) {
+      const btnText = document.getElementById('keyButtonText');
+      if (hasKey) {
+        btnText.textContent = 'Clave Activa';
+      } else {
+        btnText.textContent = 'Configurar Clave';
+      }
+    }
+
+    function openKeyModal() {
+      document.getElementById('adminKeyInput').value = getAdminKey();
+      document.getElementById('keyModalError').classList.add('hidden');
+      document.getElementById('keyModal').classList.remove('hidden');
+      document.getElementById('adminKeyInput').focus();
+    }
+
+    function closeKeyModal() {
+      document.getElementById('keyModal').classList.add('hidden');
+    }
+
+    function togglePasswordVisibility() {
+      const input = document.getElementById('adminKeyInput');
+      input.type = input.type === 'password' ? 'text' : 'password';
+    }
+
+    async function saveAdminKey() {
+      const input = document.getElementById('adminKeyInput');
+      const errEl = document.getElementById('keyModalError');
+      const key = input.value.trim();
+
+      if (!key) {
+        errEl.textContent = 'Por favor ingresa una clave.';
+        errEl.classList.remove('hidden');
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/admin/verify', {
+          headers: { 'x-admin-key': key }
+        });
+        const data = await res.json();
+
+        if (res.ok && data.success) {
+          setAdminKey(key);
+          closeKeyModal();
+          showAlert('Clave validada correctamente. Ya puedes procesar cargas.', 'success');
+          loadStatus();
+          loadHistory();
+        } else {
+          errEl.textContent = data.error || 'Clave incorrecta.';
+          errEl.classList.remove('hidden');
+        }
+      } catch (e) {
+        errEl.textContent = 'Error al validar la clave: ' + e.message;
+        errEl.classList.remove('hidden');
+      }
+    }
+
+    function showAlert(message, type = 'info') {
+      const el = document.getElementById('globalAlert');
+      el.className = 'alert';
+      if (type === 'success') {
+        el.classList.add('alert-success');
+        el.innerHTML = `<span>✅</span><div>${message}</div>`;
+      } else if (type === 'error') {
+        el.classList.add('alert-error');
+        el.innerHTML = `<span>❌</span><div>${message}</div>`;
+      } else {
+        el.classList.add('alert-info');
+        el.innerHTML = `<span>ℹ️</span><div>${message}</div>`;
+      }
+      el.classList.remove('hidden');
+      setTimeout(() => el.classList.add('hidden'), 8000);
+    }
+
+    // Load counts and status
+    async function loadStatus() {
+      const key = getAdminKey();
+      if (!key) {
+        openKeyModal();
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/admin/status', {
+          headers: { 'x-admin-key': key }
+        });
+
+        if (res.status === 401) {
+          openKeyModal();
+          return;
+        }
+
+        const data = await res.json();
+        if (data.success && data.counts) {
+          document.getElementById('countDeps').textContent = data.counts.departamentos.toLocaleString();
+          document.getElementById('countDists').textContent = data.counts.distritos.toLocaleString();
+          document.getElementById('countCiud').textContent = data.counts.ciudades.toLocaleString();
+          document.getElementById('countBarrios').textContent = data.counts.barrios.toLocaleString();
+        }
+      } catch (err) {
+        console.warn('Error cargando status:', err);
+      }
+    }
+
+    // Load history
+    async function loadHistory() {
+      const key = getAdminKey();
+      if (!key) return;
+
+      const tbody = document.getElementById('historyTableBody');
+      try {
+        const res = await fetch('/api/admin/history', {
+          headers: { 'x-admin-key': key }
+        });
+
+        if (!res.ok) return;
+
+        const data = await res.json();
+        if (data.success && data.runs && data.runs.length > 0) {
+          tbody.innerHTML = data.runs.map(run => {
+            const dateStr = run.started_at ? new Date(run.started_at).toLocaleString() : '--';
+            const fileName = run.source_file ? run.source_file.split(/[\/\\]/).pop() : '--';
+            return `
+              <tr>
+                <td style="font-family: monospace; font-weight: 600;">#${run.id}</td>
+                <td style="font-weight: 500;">${dateStr}</td>
+                <td class="truncate" style="max-width: 220px; font-family: monospace;" title="${run.source_file}">${fileName}</td>
+                <td style="text-align: center;">${formatStatsBadge(run.departamentos_altas, run.departamentos_mod, run.departamentos_bajas)}</td>
+                <td style="text-align: center;">${formatStatsBadge(run.distritos_altas, run.distritos_mod, run.distritos_bajas)}</td>
+                <td style="text-align: center;">${formatStatsBadge(run.ciudades_altas, run.ciudades_mod, run.ciudades_bajas)}</td>
+                <td style="text-align: center;">${formatStatsBadge(run.barrios_altas, run.barrios_mod, run.barrios_bajas)}</td>
+              </tr>
+            `;
+          }).join('');
+        } else {
+          tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 2rem;">No hay corridas de ingesta registradas aún.</td></tr>`;
+        }
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--danger); padding: 2rem;">Error cargando historial: ${err.message}</td></tr>`;
+      }
+    }
+
+    function formatStatsBadge(altas, mod, bajas) {
+      return `
+        <span style="font-family: monospace; font-size: 0.75rem;">
+          <span class="text-altas">+${altas || 0}</span>
+          <span style="color: var(--text-subtle);">/</span>
+          <span class="text-mod">~${mod || 0}</span>
+          <span style="color: var(--text-subtle);">/</span>
+          <span class="text-bajas">-${bajas || 0}</span>
+        </span>
+      `;
+    }
+
+    // Drag and Drop
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+
+    dropZone.addEventListener('click', () => fileInput.click());
+
+    ['dragenter', 'dragover'].forEach(eventName => {
+      dropZone.addEventListener(eventName, (e) => {
+        e.preventDefault();
+        dropZone.classList.add('active');
+      });
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+      dropZone.addEventListener(eventName, (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('active');
+      });
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+      if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        handleFileSelection(e.dataTransfer.files[0]);
+      }
+    });
+
+    fileInput.addEventListener('change', (e) => {
+      if (e.target.files && e.target.files.length > 0) {
+        handleFileSelection(e.target.files[0]);
+      }
+    });
+
+    function handleFileSelection(file) {
+      if (!file.name.toLowerCase().endsWith('.xlsx')) {
+        showAlert('Solo se admiten archivos con formato Excel (.xlsx).', 'error');
+        return;
+      }
+
+      selectedFile = file;
+      document.getElementById('selectedFileName').textContent = file.name;
+      document.getElementById('selectedFileSize').textContent = formatBytes(file.size);
+
+      document.getElementById('dropEmptyState').classList.add('hidden');
+      document.getElementById('dropSelectedState').classList.remove('hidden');
+      document.getElementById('btnProcess').removeAttribute('disabled');
+    }
+
+    function clearSelectedFile(e) {
+      if (e) e.stopPropagation();
+      selectedFile = null;
+      fileInput.value = '';
+      document.getElementById('dropEmptyState').classList.remove('hidden');
+      document.getElementById('dropSelectedState').classList.add('hidden');
+      document.getElementById('btnProcess').setAttribute('disabled', 'true');
+    }
+
+    function formatBytes(bytes) {
+      if (bytes === 0) return '0 Bytes';
+      const k = 1024;
+      const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+
+    // Submit and process
+    async function processUpload() {
+      if (!selectedFile) return;
+
+      const key = getAdminKey();
+      if (!key) {
+        openKeyModal();
+        return;
+      }
+
+      const btn = document.getElementById('btnProcess');
+      const loader = document.getElementById('processingLoader');
+      const resultsSection = document.getElementById('resultsSection');
+
+      btn.setAttribute('disabled', 'true');
+      loader.classList.remove('hidden');
+      resultsSection.classList.add('hidden');
+
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+
+      try {
+        const response = await fetch('/api/admin/ingest', {
+          method: 'POST',
+          headers: {
+            'x-admin-key': key
+          },
+          body: formData
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.success) {
+          showAlert(`Ingesta completada con éxito en ${data.duration}.`, 'success');
+          renderStatsCards(data.stats, data.duration, data.filename);
+          clearSelectedFile();
+          loadStatus();
+          loadHistory();
+        } else {
+          if (response.status === 401) {
+            showAlert('Clave de administración incorrecta. Por favor vuelve a ingresarla.', 'error');
+            openKeyModal();
+          } else {
+            showAlert(data.error || 'Error procesando la ingesta.', 'error');
+          }
+        }
+      } catch (err) {
+        showAlert('Error de comunicación con el microservicio: ' + err.message, 'error');
+      } finally {
+        loader.classList.add('hidden');
+        if (selectedFile) btn.removeAttribute('disabled');
+      }
+    }
+
+    function renderStatsCards(stats, duration, filename) {
+      const container = document.getElementById('statsCardsContainer');
+      const meta = document.getElementById('resultMeta');
+      meta.textContent = `Archivo: ${filename} • Tiempo de procesamiento: ${duration}`;
+
+      const levels = [
+        { label: 'Departamentos', key: 'departamentos' },
+        { label: 'Distritos', key: 'distritos' },
+        { label: 'Ciudades', key: 'ciudades' },
+        { label: 'Barrios', key: 'barrios' }
+      ];
+
+      container.innerHTML = levels.map(lvl => {
+        const s = (stats && stats[lvl.key]) || { altas: 0, modificaciones: 0, bajas: 0 };
+        return `
+          <div class="result-card">
+            <div class="result-level">${lvl.label}</div>
+            <div class="result-row">
+              <span>Altas (+):</span>
+              <span class="text-altas">${s.altas}</span>
+            </div>
+            <div class="result-row">
+              <span>Modificaciones (~):</span>
+              <span class="text-mod">${s.modificaciones}</span>
+            </div>
+            <div class="result-row">
+              <span>Bajas (-):</span>
+              <span class="text-bajas">${s.bajas}</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      document.getElementById('resultsSection').classList.remove('hidden');
+    }
+
+    // Init
+    window.addEventListener('DOMContentLoaded', () => {
+      const key = getAdminKey();
+      updateKeyButtonState(!!key);
+      if (key) {
+        loadStatus();
+        loadHistory();
+      } else {
+        openKeyModal();
+      }
+    });
+  </script>
+</body>
+</html>
